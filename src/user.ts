@@ -331,14 +331,27 @@ userrouter.post('/send-otp', async (req:any, res:any) => {
   });
 userrouter.get('/checkPromo',async(req:any,res:any)=>{
     const code = req.query.code;
-    if(!code){
+    const id = req.query.userid;
+    if(!code || !id){
         return res.json({
-            msg:"Code required"
+            msg:"Code and id required"
         })
     }
     
 
     try{
+        const user = await prisma.user.findUnique({
+            where:{
+                id:Number(id)
+            }
+        })
+
+        if(user?.promocode === code){
+            return res.json({
+                status:false
+            })
+        }
+
         const find = await prisma.user.findFirst({
             where:{
                 promocode:code
