@@ -50,11 +50,21 @@ userrouter.post('/createuser',async(req:any,res:any)=>{
 
 const {name,password,email,number,role,Class} = req.body;
 
- if(!name || !password || !email || !number || !Class){
-    return res.json({
-        msg:"Fields are missing"
-    })
- }
+if(role === 'teacher'){
+    if(!name || !password || !email || !number){
+        return res.json({
+            msg:"Fields are missing"
+        })
+     }
+}
+else {
+    if(!name || !password || !email || !number || !Class){
+        return res.json({
+            msg:"Fields are missing"
+        })
+     }
+}
+ 
 
 
 
@@ -84,7 +94,7 @@ const newUser = await prisma.user.create({
       number,
       role:role,
       promocode:Promocode,
-      class:Number(Class)
+      class:role === 'teacher' ? Number(0):Number(Class)
     },
   });
   console.log(newUser)
