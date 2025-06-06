@@ -39,4 +39,52 @@ adminrouter.delete('/deletepurchase',async(req:any,res:any)=>{
     }
 })
 
+const crypto = require("crypto");
+
+adminrouter.post("/payment/webhook", async (req, res) => {
+  const secret = "mywebhooksecret123";
+  const body = JSON.stringify(req.body);
+  const signature = req.headers["x-razorpay-signature"];
+
+  const expectedSignature = crypto
+    .createHmac("sha256", secret!)
+    .update(body)
+    .digest("hex");
+
+  const isAuthentic = expectedSignature === signature;
+
+  if (isAuthentic) {
+    const event = req.body;
+
+    if (event.event === "payment.captured") {
+      const paymentId = event.payload.payment.entity.id;
+      const orderId = event.payload.payment.entity.order_id;
+
+      await prisma.purchase.updateMany({
+        where: { razorpayOrderId: orderId },
+        data: {
+          razorpayPaymentId: paymentId,
+          status: "SUCCESS",
+        },
+      });
+
+    } else if (event.event === "payment.failed") {
+      const paymentId = event.payload.payment.entity.id;
+      const orderId = event.payload.payment.entity.order_id;
+
+      await prisma.purchase.updateMany({
+        where: { razorpayOrderId: orderId },
+        data: {
+          razorpayPaymentId: paymentId,
+          status: "FAILED",
+        },
+      });
+    }
+
+    res.status(200).json({ status: "ok" });
+  } else {
+    res.status(400).json({ status: "invalid signature" });
+  }
+});
+
 module.exports = adminrouter
